@@ -20,17 +20,21 @@ class YamlLoader(Loader):
         return klass(**item)
     
     def update_item(self, item):
-        for key, value in item.iteritems():
+        new_item = item.copy()
+        for key, value in new_item.iteritems():
+            if isinstance(value, basestring) and value.startswith('&'):
+                new_item[key] = None
             if isinstance(value, basestring) and value.startswith('*'):
                 id = value[1:]
-                item[key] = self._references.get(id, item[key])
+                new_item[key] = self._references.get(id, new_item[key])
             if isinstance(value, list):
                 l = []
                 for i in value:
                     if isinstance(i, basestring) and i.startswith('*'):
                         id = i[1:]
                         l.append(self._references.get(id, i))
-                item[key] = l
+                new_item[key] = l
+        return new_item
 
     def has_references(self, item):
         for key, value in item.iteritems():
@@ -63,8 +67,8 @@ class YamlLoader(Loader):
                         name = keys[0]
                         item = item[name]
                         name = name[1:]
-                    items = self.update_item(item)
-                    obj = self.create_obj(klass, item)
+                    new_item = self.update_item(item)
+                    obj = self.create_obj(klass, new_item)
                     session.add(obj)
                     if name:
                         self.add_reference(name, obj)
