@@ -1,0 +1,20 @@
+-
+  User: 
+   - {user_id: '&id', name: peggy}
+   - {name: sue}
+  flush:
+  commit:
+-
+  Group:
+   - {name: teachers, admin_id: '*id'}
+   - 
+    '&students_group':
+     {group_id: '&students_group_id', name: students}
+   - 
+    '&players_group':
+      {group_id: '&players_group_id', name: players}
+  flush:
+- 
+  User:
+   - {name: bobby, groups: ['*students_group_id', '*players_group_id']}
+   - {name: billy, groups: ['*students_group', '*players_group']}
