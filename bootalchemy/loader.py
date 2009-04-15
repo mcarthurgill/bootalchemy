@@ -3,7 +3,6 @@ from yaml import load
 class Loader(object):
     pass
 
-
 class YamlLoader(Loader):
     
     def __init__(self, model, references=None):
@@ -33,6 +32,8 @@ class YamlLoader(Loader):
                     if isinstance(i, basestring) and i.startswith('*'):
                         id = i[1:]
                         l.append(self._references.get(id, i))
+                        continue
+                    l.append(i)
                 new_item[key] = l
         return new_item
 
@@ -42,7 +43,7 @@ class YamlLoader(Loader):
                 return True
 
     def add_reference(self, key, obj):
-        self._references[key] = obj
+        self._references[key[1:]] = obj
             
     def set_references(self, obj, item):
         for key, value in item.iteritems():
@@ -61,17 +62,17 @@ class YamlLoader(Loader):
                     continue
                 klass = getattr(self.model, name)
                 for item in items:
-                    name = None
+                    ref_name = None
                     keys = item.keys()
                     if len(keys) == 1 and keys[0].startswith('&') and isinstance(item[keys[0]], dict):
-                        name = keys[0]
-                        item = item[name]
+                        ref_name = keys[0]
+                        item = item[ref_name]
                         name = name[1:]
                     new_item = self.update_item(item)
                     obj = self.create_obj(klass, new_item)
                     session.add(obj)
-                    if name:
-                        self.add_reference(name, obj)
+                    if ref_name:
+                        self.add_reference(ref_name, obj)
                     if self.has_references(item):
                         session.flush()
                         self.set_references(obj, item)
