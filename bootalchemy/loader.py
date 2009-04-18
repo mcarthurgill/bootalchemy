@@ -93,4 +93,7 @@ class YamlLoader(Loader):
                     self.clear()
         except Exception, e:
             log.error('error occured while loading yaml data with output:\n%s'%pformat(data))
+            log.error('references:\n%s'%pformat(self._references))
+            log.error('class: %s'%klass)
+            log.error('item: %s'%item)
             raise e
