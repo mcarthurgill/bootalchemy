@@ -1,5 +1,11 @@
 from yaml import load
+import logging
+from pprint import pformat
 
+log = logging.Logger('bootalchemy', level=logging.INFO)
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+log.addHandler(ch)
 class Loader(object):
     pass
 
@@ -56,31 +62,38 @@ class YamlLoader(Loader):
 
     def loads(self, session, s):
         data = load(s)
-        for group in data:
-            for name, items in group.iteritems():
-                if name in ['flush', 'commit', 'clear']:
-                    continue
-                klass = getattr(self.model, name)
-                for item in items:
-                    ref_name = None
-                    keys = item.keys()
-                    if len(keys) == 1 and keys[0].startswith('&') and isinstance(item[keys[0]], dict):
-                        ref_name = keys[0]
-                        item = item[ref_name]
-                        name = name[1:]
-                    new_item = self.update_item(item)
-                    obj = self.create_obj(klass, new_item)
-                    session.add(obj)
-                    if ref_name:
-                        self.add_reference(ref_name, obj)
-                    if self.has_references(item):
-                        session.flush()
-                        self.set_references(obj, item)
+        try:
+            for group in data:
+                for name, items in group.iteritems():
+                    if name in ['flush', 'commit', 'clear']:
+                        continue
+                    klass = getattr(self.model, name)
+                    for item in items:
+                        ref_name = None
+                        keys = item.keys()
+                        if len(keys) == 1 and keys[0].startswith('&') and isinstance(item[keys[0]], dict):
+                            ref_name = keys[0]
+                            item = item[ref_name]
+                            name = name[1:]
+                        new_item = self.update_item(item)
+                        obj = self.create_obj(klass, new_item)
+                        session.add(obj)
+                        if ref_name:
+                            self.add_reference(ref_name, obj)
+                        if self.has_references(item):
+                            session.flush()
+                            self.set_references(obj, item)
 
-            keys = group.keys()
-            if 'flush' in keys:
-                session.flush()
-            if 'commit' in keys:
-                session.commit()
-            if 'clear' in keys:
-                self.clear()
+                keys = group.keys()
+                if 'flush' in keys:
+                    session.flush()
+                if 'commit' in keys:
+                    session.commit()
+                if 'clear' in keys:
+                    self.clear()
+        except Exception, e:
+            log.error('error occured while loading yaml data with output:\n%s'%pformat(data))
+            log.error('references:\n%s'%pformat(self._references))
+            log.error('class: %s'%klass)
+            log.error('item: %s'%item)
+            raise e
