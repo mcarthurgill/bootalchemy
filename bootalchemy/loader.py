@@ -7,10 +7,6 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 log.addHandler(ch)
 class Loader(object):
-    pass
-
-class YamlLoader(Loader):
-    
     def __init__(self, model, references=None):
         self.model = model
         if references is None:
@@ -60,8 +56,7 @@ class YamlLoader(Loader):
                     if isinstance(value, basestring) and i.startswith('&'):
                         self._references[value[1:]] = getattr(obj, value[1:])
 
-    def loads(self, session, s):
-        data = load(s)
+    def from_dict(self, session, data):
         try:
             for group in data:
                 for name, items in group.iteritems():
@@ -97,3 +92,14 @@ class YamlLoader(Loader):
             log.error('class: %s'%klass)
             log.error('item: %s'%item)
             raise e
+
+class YamlLoader(Loader):
+    
+    def loadf(self, session, filename):
+        s = open(filename).read()
+        return self.loads(s)
+        
+    
+    def loads(self, session, s):
+        data = load(s)
+        return self.from_dict(session, data)
