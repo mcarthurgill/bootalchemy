@@ -19,7 +19,7 @@ setup(name='bootalchemy',
       zip_safe=False,
       install_requires=[
           # -*- Extra requirements: -*-
-          'PyYaml'
+          'PyYAML'
       ],
       entry_points="""
       # -*- Entry points: -*-
