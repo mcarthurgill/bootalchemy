@@ -1,0 +1,371 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>BootAlchemy &mdash; bootalchemy v0.1.2 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.2',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="top" title="bootalchemy v0.1.2 documentation" href="" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="">bootalchemy v0.1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  
+  <div class="section" id="bootalchemy">
+<h1>BootAlchemy<a class="headerlink" href="#bootalchemy" title="Permalink to this headline">¶</a></h1>
+<p>BootAlchemy is a tool which allows you to load data into an SQL
+database via yaml-formatted text.  You provide bootalchemy with set
+of mapped objects, and some text, and it will push objects
+with that text into the database.  In addition to all of the functionality
+YAML provides, BootAlchemy can also de-obfuscate relationships and
+add those to the database as well.</p>
+<div class="section" id="current-version">
+<h2>Current Version<a class="headerlink" href="#current-version" title="Permalink to this headline">¶</a></h2>
+<p>0.1.2</p>
+</div>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>SqlAlchemy&gt;=0.5</li>
+<li>PyYaml</li>
+</ul>
+</div>
+<div class="section" id="getting-started-with-bootalchemy">
+<h2>Getting Started With BootAlchemy<a class="headerlink" href="#getting-started-with-bootalchemy" title="Permalink to this headline">¶</a></h2>
+<p>Let us first consider this model, assume it is defined in a module called &#8220;model&#8221;:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">movie_directors_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="s">&#39;movie_directors&#39;</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span>
+                              <span class="n">Column</span><span class="p">(</span><span class="s">&#39;movie_id&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s">&#39;movies.movie_id&#39;</span><span class="p">),</span> <span class="n">primary_key</span> <span class="o">=</span> <span class="bp">True</span><span class="p">),</span>
+                              <span class="n">Column</span><span class="p">(</span><span class="s">&#39;director_id&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s">&#39;directors.director_id&#39;</span><span class="p">),</span> <span class="n">primary_key</span> <span class="o">=</span> <span class="bp">True</span><span class="p">))</span>
+
+<span class="k">class</span> <span class="nc">Genre</span><span class="p">(</span><span class="n">DeclarativeBase</span><span class="p">):</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&quot;genres&quot;</span>
+    <span class="n">genre_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mf">100</span><span class="p">))</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mf">300</span><span class="p">))</span>
+
+<span class="k">class</span> <span class="nc">Movie</span><span class="p">(</span><span class="n">DeclarativeBase</span><span class="p">):</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&quot;movies&quot;</span>
+    <span class="n">movie_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mf">100</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">genre_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s">&#39;genres.genre_id&#39;</span><span class="p">))</span>
+    <span class="n">genre</span> <span class="o">=</span> <span class="n">relation</span><span class="p">(</span><span class="s">&#39;Genre&#39;</span><span class="p">,</span> <span class="n">backref</span><span class="o">=</span><span class="s">&#39;movies&#39;</span><span class="p">)</span>
+    <span class="n">release_date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">Director</span><span class="p">(</span><span class="n">DeclarativeBase</span><span class="p">):</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s">&quot;directors&quot;</span>
+    <span class="n">director_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mf">100</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">movies</span> <span class="o">=</span> <span class="n">relation</span><span class="p">(</span><span class="n">Movie</span><span class="p">,</span> <span class="n">secondary</span><span class="o">=</span><span class="n">movie_directors_table</span><span class="p">,</span> <span class="n">backref</span><span class="o">=</span><span class="s">&quot;directors&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="simple-example">
+<h2>Simple Example<a class="headerlink" href="#simple-example" title="Permalink to this headline">¶</a></h2>
+<p>First let&#8217;s explore the structure used to push data into the database.  We
+will use plain python to load in the data:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">bootalchemy.loader</span> <span class="kn">import</span> <span class="n">Loader</span>
+<span class="n">data</span> <span class="o">=</span> <span class="p">[{</span><span class="s">&#39;Genre&#39;</span><span class="p">:[{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&quot;action&quot;</span><span class="p">,</span>
+               <span class="s">&#39;description&#39;</span><span class="p">:</span><span class="s">&#39;Car chases, guns and violence.&#39;</span>
+              <span class="p">}</span>
+             <span class="p">]</span>
+    <span class="p">}</span>
+   <span class="p">]</span>
+
+
+<span class="n">loader</span> <span class="o">=</span> <span class="n">Loader</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+<span class="n">loader</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+<span class="n">genres</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Genre</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<span class="k">print</span> <span class="p">[(</span><span class="n">genre</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">genre</span><span class="o">.</span><span class="n">description</span><span class="p">)</span> <span class="k">for</span> <span class="n">genre</span> <span class="ow">in</span> <span class="n">genres</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>produces:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[(</span><span class="s">&#39;action&#39;</span><span class="p">,</span> <span class="s">&#39;Car chases, guns and violence.&#39;</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Note that while the data is in the session, it has not yet been commited
+to the database.  Boot alchemy does not commit by default but can be
+made to do so.</p>
+</div>
+<div class="section" id="the-bootalchemy-data-structure">
+<h2>The BootAlchemy Data Structure<a class="headerlink" href="#the-bootalchemy-data-structure" title="Permalink to this headline">¶</a></h2>
+<p>The basic structure of a BootAlchemy data structure is like this:</p>
+<div class="highlight-python"><pre>[
+    { #start of the first grouping
+      ObjectName:[ #start of objects of type ObjectName
+                  {'attribute':'value', 'attribute':'value' ... more attributes},
+                  {'attribute':'value', 'attribute':'value' ... more attributes},
+                  ...
+                  }
+                  ]
+      ObjectName: [ ... more attr dicts here ... ]
+      [commit:None] #optionally commit at the end of this grouping
+      [flush:None]  #optionally flush at the end of this grouping
+    }, #end of first grouping
+    { #start of the next grouping
+      ...
+    } #end of the next grouping
+]</pre>
+</div>
+<p>The basic structure is a list of dictionaries.  Each dictionary represents a &#8220;group&#8221; of objects.
+Each object can have one or more records associated with it.</p>
+</div>
+<div class="section" id="flushing-and-committing">
+<h2>Flushing and Committing<a class="headerlink" href="#flushing-and-committing" title="Permalink to this headline">¶</a></h2>
+<p>If you provide keys with the name commit and flush to the grouping, the session will
+be committed or flushed accordingly.  One thing to note is that if you define any
+relationships within a record, the grouping will be flushed at that point.
+There is no way to avoid this flush.</p>
+</div>
+<div class="section" id="about-your-model">
+<h2>About Your Model<a class="headerlink" href="#about-your-model" title="Permalink to this headline">¶</a></h2>
+<p>BootAlchemy expects that your models have the ability to pass a set of keyword pairs into
+your objects.  DeclarativeBase does this automatically, but if you have the standard SqlAlchemy object
+definitions, you may want to augment them with a superclass that looks something like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">DBObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is the DBObject class which all other model classes rely on.</span>
+<span class="sd">    It allows us to instantiate an object with attributes simply by passing</span>
+<span class="sd">    them into the constructor.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kw</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="storing-references-think-autoincrement">
+<h2>Storing References (think Autoincrement)<a class="headerlink" href="#storing-references-think-autoincrement" title="Permalink to this headline">¶</a></h2>
+<p>You can store references within your records and then use them later.  For instance, let&#8217;s
+store the genre_id, and use it in a movie define.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">data</span> <span class="o">=</span> <span class="p">[{</span><span class="s">&#39;Genre&#39;</span><span class="p">:[{</span><span class="s">&#39;genre_id&#39;</span><span class="p">:</span><span class="s">&#39;&amp;scifi_id&#39;</span><span class="p">,</span>
+                   <span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&quot;sci-fi&quot;</span><span class="p">,</span>
+                   <span class="s">&#39;description&#39;</span><span class="p">:</span><span class="s">&#39;Science Fiction, see: 42&#39;</span>
+                  <span class="p">}</span>
+                 <span class="p">],</span>
+          <span class="s">&#39;flush&#39;</span><span class="p">:</span><span class="bp">None</span><span class="p">},</span>
+        <span class="p">{</span><span class="s">&#39;Movie&#39;</span><span class="p">:[{</span><span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;Back to the Future&quot;</span><span class="p">,</span>
+                  <span class="s">&quot;description&quot;</span><span class="p">:</span> <span class="s">&quot;In 1985, Doc Brown invents time travel; in 1955,</span><span class="se">\</span>
+<span class="s">                                  Marty McFly accidentally prevents his parents from</span><span class="se">\</span>
+<span class="s">                                  meeting, putting his own existence at stake&quot;</span><span class="p">,</span>
+                  <span class="s">&quot;release_date&quot;</span><span class="p">:</span> <span class="s">&quot;1985-04-03&quot;</span><span class="p">,</span>
+                  <span class="s">&quot;genre_id&quot;</span><span class="p">:</span> <span class="s">&#39;*scifi_id&#39;</span><span class="p">}],</span>
+         <span class="s">&#39;flush&#39;</span><span class="p">:</span><span class="bp">None</span>
+         <span class="p">}]</span>
+
+<span class="n">loader</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="n">movies</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Movie</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<span class="k">print</span> <span class="p">[(</span><span class="n">movie</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">movie</span><span class="o">.</span><span class="n">genre</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">movie</span> <span class="ow">in</span> <span class="n">movies</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>produces:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[(</span><span class="s">&#39;Back to the Future&#39;</span><span class="p">,</span> <span class="s">&#39;sci-fi&#39;</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>If you provide a string with a &#8216;&amp;&#8217; as one of the attribute values,
+boot alchemy will store the value of this item in a reference dictionary.  This is then
+retrieved when you provide a string starting with &#8216;*&#8217;.  The reference is set after the
+object is flushed to the database, which means that if you have an auto-incrementing
+field, it will be set to the incremented value.
+Notice that the genre was populated within the movie object.  This is more of an affect of the
+ORM than of bootalchemy, but we will see next how boot alchemy itself takes advantage of the
+inner workings of the orm.</p>
+</div>
+<div class="section" id="relationships">
+<h2>Relationships<a class="headerlink" href="#relationships" title="Permalink to this headline">¶</a></h2>
+<p>Since we have an object mapping to tables, and not just tables in our database, we cann
+assign actual objects to the reference dictionary, not just id&#8217;s.  Here is another
+way to assign the genre to our movie:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">data</span> <span class="o">=</span> <span class="p">[{</span><span class="s">&#39;Genre&#39;</span><span class="p">:[{</span><span class="s">&#39;&amp;comedy&#39;</span><span class="p">:{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&quot;comedy&quot;</span><span class="p">,</span>
+                   <span class="s">&#39;description&#39;</span><span class="p">:</span><span class="s">&quot;Don&#39;t you _like_ to laugh?&quot;</span>
+                  <span class="p">}}</span>
+                 <span class="p">],</span>
+          <span class="s">&#39;flush&#39;</span><span class="p">:</span><span class="bp">None</span><span class="p">},</span>
+        <span class="p">{</span><span class="s">&#39;Movie&#39;</span><span class="p">:[{</span><span class="s">&quot;description&quot;</span><span class="p">:</span> <span class="s">&#39;&quot;Dude&quot; Lebowski, mistaken for a millionaire Lebowski,</span><span class="se">\</span>
+<span class="s">                                   seeks restitution for his ruined rug and enlists his </span><span class="se">\</span>
+<span class="s">                                   bowling buddies to help get it.&#39;</span><span class="p">,</span>
+                   <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;The Big Lebowski&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;release_date&quot;</span><span class="p">:</span> <span class="s">&quot;1998-03-06&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;genre&quot;</span><span class="p">:</span> <span class="s">&quot;*comedy&quot;</span><span class="p">}],</span>
+         <span class="s">&#39;flush&#39;</span><span class="p">:</span><span class="bp">None</span>
+         <span class="p">}]</span>
+
+<span class="n">loader</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="n">movies</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Movie</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<span class="k">print</span> <span class="p">[(</span><span class="n">movie</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">movie</span><span class="o">.</span><span class="n">genre</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">movie</span> <span class="ow">in</span> <span class="n">movies</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>produces:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c">#[(&#39;Back to the Future&#39;, &#39;sci-fi&#39;), (&#39;The Big Lebowski&#39;, &#39;comedy&#39;)]</span>
+</pre></div>
+</div>
+<p>This also works for one-to-many and many-to-many relationships.  If you profide a list of
+objects, bootalchemy will retrieve them from the reference dictionary and attach them
+to the proper attribute of your object.  Lets assign some directors to a movie.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">data</span> <span class="o">=</span> <span class="p">[{</span><span class="s">&#39;Director&#39;</span><span class="p">:[{</span><span class="s">&#39;&amp;andy&#39;</span><span class="p">:{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&quot;Andy Wachowski&quot;</span><span class="p">}},</span>
+                     <span class="p">{</span><span class="s">&#39;&amp;larry&#39;</span><span class="p">:{</span><span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&quot;Larry Wachowski&quot;</span><span class="p">}}</span>
+                 <span class="p">],</span>
+          <span class="s">&#39;flush&#39;</span><span class="p">:</span><span class="bp">None</span><span class="p">},</span>
+        <span class="p">{</span><span class="s">&#39;Movie&#39;</span><span class="p">:[{</span><span class="s">&quot;description&quot;</span><span class="p">:</span> <span class="s">&quot;A computer hacker learns from mysterious rebels</span><span class="se">\</span>
+<span class="s">                                   about the true nature of his reality and his</span><span class="se">\</span>
+<span class="s">                                   role in the war against the controllers of it.&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;title&quot;</span><span class="p">:</span> <span class="s">&quot;The Matrix&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;release_date&quot;</span><span class="p">:</span> <span class="s">&quot;1999-03-31&quot;</span><span class="p">,</span>
+                   <span class="s">&quot;directors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s">&#39;*andy&#39;</span><span class="p">,</span> <span class="s">&#39;*larry&#39;</span><span class="p">],</span> <span class="s">&quot;genre_id&quot;</span><span class="p">:</span> <span class="s">&quot;*scifi_id&quot;</span><span class="p">}],</span>
+         <span class="s">&#39;flush&#39;</span><span class="p">:</span><span class="bp">None</span>
+         <span class="p">}]</span>
+
+<span class="n">loader</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="n">movies</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Movie</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<span class="k">print</span> <span class="p">[(</span><span class="n">movie</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">movie</span><span class="o">.</span><span class="n">directors</span><span class="p">])</span> <span class="k">for</span> <span class="n">movie</span> <span class="ow">in</span> <span class="n">movies</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>produces:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[(</span><span class="s">&#39;Back to the Future&#39;</span><span class="p">,</span> <span class="p">[]),</span> <span class="p">(</span><span class="s">&#39;The Big Lebowski&#39;</span><span class="p">,</span> <span class="p">[]),</span> <span class="p">(</span><span class="s">&#39;The Matrix&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;Andy Wachowski&#39;</span><span class="p">,</span> <span class="s">&#39;Larry Wachowski&#39;</span><span class="p">])]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="yaml">
+<h2>Yaml<a class="headerlink" href="#yaml" title="Permalink to this headline">¶</a></h2>
+<p>BootAlchemy has a very simple data structure because we wanted it to work with YAML.  You can easily
+provide a yaml string to BootAlchemy for parsing.  Yaml has the benefit that it is a standard that
+non-python developers can follow, and has a large set of functionality outside of what you can
+do with simple strings in dictionaries.  Take a look at the spec:  <a class="reference external" href="http://www.yaml.org/spec/">http://www.yaml.org/spec/</a> .  Here is
+an example Yaml string loaded into the database with bootalchemy:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">bootalchemy.loader</span> <span class="kn">import</span> <span class="n">YamlLoader</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">- Movie:</span>
+<span class="s">    - description: An office employee and a soap salesman build a global organization to help vent male aggression.,</span>
+<span class="s">      title: Fight Club,</span>
+<span class="s">      release_date: 1999-10-14</span>
+<span class="s">      genre: &quot;*action&quot;</span>
+<span class="s">  flush:</span>
+<span class="s">&quot;&quot;&quot;</span>
+
+<span class="n">action</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Genre</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Genre</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&#39;action&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+<span class="n">loader</span> <span class="o">=</span> <span class="n">YamlLoader</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;action&#39;</span><span class="p">:</span><span class="n">action</span><span class="p">})</span>
+<span class="n">loader</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="n">movies</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Movie</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<span class="k">print</span> <span class="p">[(</span><span class="n">movie</span><span class="o">.</span><span class="n">title</span><span class="p">,</span> <span class="n">movie</span><span class="o">.</span><span class="n">genre</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">movie</span> <span class="ow">in</span> <span class="n">movies</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>produces:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[(</span><span class="s">&#39;Back to the Future&#39;</span><span class="p">,</span> <span class="s">&#39;sci-fi&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;The Big Lebowski&#39;</span><span class="p">,</span> <span class="s">&#39;comedy&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;The Matrix&#39;</span><span class="p">,</span> <span class="s">&#39;sci-fi&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s">&#39;Fight Club,&#39;</span><span class="p">,</span> <span class="s">&#39;action&#39;</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Notice too that we supplied existing references into this loader since it did not have them from the previous runs.
+As a python programmer, you might find yaml pretty refreshing.  It has simple syntax, rewards brevity, and is sensitive
+to indentation.  In many ways it is nicer to set data up within than Python, as many of the quotes have been eliminated.
+PyYaml supplies readable debug output in case your yaml syntax is incorect.  Here is an example where a stray &#8220;}&#8221; has been
+left at the end of the genre line:</p>
+<div class="highlight-python"><pre>yaml.parser.ParserError: while parsing a block mapping
+  in "&lt;string&gt;", line 3, column 7:
+        - description: An office employee  ...
+          ^
+expected &lt;block end&gt;, but found '}'
+  in "&lt;string&gt;", line 6, column 23:
+          genre: "*action"}
+                          ^</pre>
+</div>
+<p><tt class="xref docutils literal"><span class="pre">YamlLoader</span></tt> also provides a loadf function which takes a file name and loads it into the database.</p>
+</div>
+<div class="section" id="json">
+<h2>Json!<a class="headerlink" href="#json" title="Permalink to this headline">¶</a></h2>
+<p>One of the great things about YAML is that JSon is a subset of the specification for Yaml.  Often times I find
+myself with a bunch of data that I have hand-entered into a database, and I want to replicate that data for some
+kind of development process.  I can output the database data into Json using my browser and then inject it as a
+stream into my bootloader program.</p>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference external" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference external" href="modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference external" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+            <h3><a href="">Table Of Contents</a></h3>
+            <ul>
+<li><a class="reference external" href="">BootAlchemy</a><ul>
+<li><a class="reference external" href="#current-version">Current Version</a></li>
+<li><a class="reference external" href="#requirements">Requirements</a></li>
+<li><a class="reference external" href="#getting-started-with-bootalchemy">Getting Started With BootAlchemy</a></li>
+<li><a class="reference external" href="#simple-example">Simple Example</a></li>
+<li><a class="reference external" href="#the-bootalchemy-data-structure">The BootAlchemy Data Structure</a></li>
+<li><a class="reference external" href="#flushing-and-committing">Flushing and Committing</a></li>
+<li><a class="reference external" href="#about-your-model">About Your Model</a></li>
+<li><a class="reference external" href="#storing-references-think-autoincrement">Storing References (think Autoincrement)</a></li>
+<li><a class="reference external" href="#relationships">Relationships</a></li>
+<li><a class="reference external" href="#yaml">Yaml</a></li>
+<li><a class="reference external" href="#json">Json!</a></li>
+</ul>
+</li>
+<li><a class="reference external" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+            <h3>This Page</h3>
+            <ul class="this-page-menu">
+              <li><a href="_sources/index.txt">Show Source</a></li>
+            </ul>
+          <h3>Quick search</h3>
+            <form class="search" action="search.html" method="get">
+              <input type="text" name="q" size="18" /> <input type="submit" value="Go" />
+              <input type="hidden" name="check_keywords" value="yes" />
+              <input type="hidden" name="area" value="default" />
+            </form>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="">bootalchemy v0.1.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+      &copy; Copyright 2009, Christopher Perkins.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.5.1.
+    </div>
+  </body>
+</html>

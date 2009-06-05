@@ -7,6 +7,15 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 log.addHandler(ch)
 class Loader(object):
+    """
+       Basic Loader 
+       
+       *Arguments*
+          model
+            list of classes in your model.
+          references
+            references from an sqlalchemy session to initialize with.
+    """
     def __init__(self, model, references=None):
         self.model = model
         if references is None:
@@ -15,9 +24,15 @@ class Loader(object):
             self._references = references
         
     def clear(self):
+        """
+        clear the existing references
+        """
         self._references = {}
     
     def create_obj(self, klass, item):
+        """
+        create an object with the given data
+        """
         return klass(**item)
     
     def update_item(self, item):
@@ -45,9 +60,15 @@ class Loader(object):
                 return True
 
     def add_reference(self, key, obj):
+        """
+        add a reference to the internal reference dictionary
+        """
         self._references[key[1:]] = obj
             
     def set_references(self, obj, item):
+        """
+        extracts the value from the object and stores them in the reference dictionary.
+        """
         for key, value in item.iteritems():
             if isinstance(value, basestring) and value.startswith('&'):
                 self._references[value[1:]] = getattr(obj, key)
@@ -56,7 +77,31 @@ class Loader(object):
                     if isinstance(value, basestring) and i.startswith('&'):
                         self._references[value[1:]] = getattr(obj, value[1:])
 
-    def from_dict(self, session, data):
+    def from_list(self, session, data):
+        """
+        extract data from a list of groups in the form:
+        
+        [
+            { #start of the first grouping
+              ObjectName:[ #start of objects of type ObjectName
+                          {'attribute':'value', 'attribute':'value' ... more attributes},
+                          {'attribute':'value', 'attribute':'value' ... more attributes},
+                          ...
+                          } 
+                          ]
+              ObjectName: [ ... more attr dicts here ... ]
+              [commit:None] #optionally commit at the end of this grouping
+              [flush:None]  #optionally flush at the end of this grouping
+            }, #end of first grouping
+            { #start of the next grouping
+              ...
+            } #end of the next grouping
+        ]
+
+        """
+        klass = None
+        item = None
+        group = None
         try:
             for group in data:
                 for name, items in group.iteritems():
@@ -102,4 +147,4 @@ class YamlLoader(Loader):
     
     def loads(self, session, s):
         data = load(s)
-        return self.from_dict(session, data)
+        return self.from_list(session, data)
