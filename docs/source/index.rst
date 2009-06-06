@@ -1,7 +1,3 @@
-.. bootalchemy documentation master file, created by sphinx-quickstart on Fri Jun  5 16:31:25 2009.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 BootAlchemy
 =============
 BootAlchemy is a tool which allows you to load data into an SQL

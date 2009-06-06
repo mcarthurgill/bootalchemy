@@ -4,7 +4,7 @@ import sys, os
 version = '0.1.2'
 
 here = os.path.abspath(os.path.dirname(__file__))
-docs = os.path.join(docs, source, 'index.rst')
+docs = os.path.join(here,'docs', 'source', 'index.rst')
 DOCS = open(docs).read()
    
 setup(name='bootalchemy',
