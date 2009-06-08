@@ -1,6 +1,9 @@
 from yaml import load
 import logging
 from pprint import pformat
+from converters import timestamp
+from sqlalchemy.orm import class_mapper
+from sqlalchemy import Unicode, Date, DateTime, Time
 
 log = logging.Logger('bootalchemy', level=logging.INFO)
 ch = logging.StreamHandler()
@@ -15,13 +18,16 @@ class Loader(object):
             list of classes in your model.
           references
             references from an sqlalchemy session to initialize with.
+          check_types
+            introspect the target model class to re-cast the data appropriately.
     """
-    def __init__(self, model, references=None):
+    def __init__(self, model, references=None, check_types=True):
         self.model = model
         if references is None:
             self._references = {}
         else:
             self._references = references
+        self.check_types = check_types
         
     def clear(self):
         """
@@ -77,6 +83,21 @@ class Loader(object):
                     if isinstance(value, basestring) and i.startswith('&'):
                         self._references[value[1:]] = getattr(obj, value[1:])
 
+    def _check_types(self, klass, obj):
+        if not self.check_types:
+            return obj
+        mapper = class_mapper(klass)
+        for table in mapper.tables:
+            for key in obj.keys():
+                col = table.columns.get(key, None)
+                if col and isinstance(col.type, (Date, DateTime, Time)) and isinstance(obj[key], basestring):
+                    obj[key] = timestamp(obj[key])
+                    continue
+                if col and isinstance(col.type, Unicode) and isinstance(obj[key], basestring):
+                    obj[key] = unicode(obj[key])
+                    continue
+        return obj
+        
     def from_list(self, session, data):
         """
         extract data from a list of groups in the form:
@@ -116,6 +137,7 @@ class Loader(object):
                             item = item[ref_name]
                             name = name[1:]
                         new_item = self.update_item(item)
+                        new_item = self._check_types(klass, new_item)
                         obj = self.create_obj(klass, new_item)
                         session.add(obj)
                         if ref_name:
