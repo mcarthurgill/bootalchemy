@@ -164,8 +164,7 @@ class YamlLoader(Loader):
     
     def loadf(self, session, filename):
         s = open(filename).read()
-        return self.loads(s)
-        
+        return self.loads(session, s)
     
     def loads(self, session, s):
         data = load(s)

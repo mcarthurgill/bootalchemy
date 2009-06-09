@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.1.3'
+version = '0.1.4'
 
 here = os.path.abspath(os.path.dirname(__file__))
 docs = os.path.join(here,'docs', 'source', 'index.rst')
