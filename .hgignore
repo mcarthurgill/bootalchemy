@@ -6,5 +6,6 @@ syntax: glob
 *.pyc
 *~
 dist
+build
 
 

@@ -2,65 +2,65 @@ import os
 from bootalchemy.loader import YamlLoader
 from pprint import pprint
 
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+
+import model
+engine = create_engine('sqlite://')
+model.metadata.bind = engine
+
+model.metadata.create_all()
+
+Session = sessionmaker(bind=engine)
+
 test_file = os.path.dirname(__file__)+'/data/test_data.yaml'
 
-class MochObj(object):
-    
-    def __init__(self, **kw):
-        for key, value in kw.iteritems():
-            setattr(self, key, value)
-            
-    @property
-    def json(self):
-        d = {}
-        for key, value in self.__dict__.iteritems():
-            if not key.startswith('_'):
-                d[key] = value
-        return d
-    
-class User(MochObj):pass
-
-class Group(MochObj):pass
-
-
-class model:
-    User = User
-    Group = Group
-
-class MochSession(object):
-    
-    def __init__(self):
-        self._objects = []
-        self._saved_objects = []
-
-    def add(self, obj):
-        self._objects.append(obj)
-        setattr(obj, obj.__class__.__name__.lower()+'_id', len(self._objects))
-        
-    def commit(self):
-        pass
-    def flush(self):
-        self._saved_objects.extend(self._objects)
-    
-    def clear(self):
-        self._objects = []
 
 class TestYamlLoader:
     
     def setup(self):
         self.loader = YamlLoader(model)
-        self.session = MochSession()
+        self.session = Session()
+    
+    def tearDown(self):
+        for user in self.session.query(model.User).all():
+            self.session.delete(user)
+        for user in self.session.query(model.Group).all():
+            self.session.delete(user)
+        self.session.flush()
         
     def test_loads(self):
         s = open(test_file).read()
         self.loader.loads(self.session, s)
-        r =  [x.json for x in self.session._objects[:-1]]
-        assert r == [{'name': 'peggy', 'user_id': 1},
-                     {'name': 'sue', 'user_id': 2},
-                     {'admin_id': 1, 'group_id': 3, 'name': 'teachers'},
-                     {'group_id': 4, 'name': 'students'},
-                     {'group_id': 5, 'name': 'players'},
-                     {'groups': [4, 5], 'name': 'bobby', 'user_id': 6}], pprint(r)
-        last_r = self.session._objects[-1]
-        assert len(last_r.groups) == 2, last_r
-        assert last_r.groups[0].json ==  {'group_id': 4, 'name': 'students'}, last_r.groups[0].json
+        groups = self.session.query(model.Group).all()
+        r =  [x .json for x in groups]
+        assert r == [{'display_name': None, 'group_id': 1, 'name': u'teachers'},
+                     {'display_name': None, 'group_id': 2, 'name': u'students'},
+                     {'display_name': None, 'group_id': 3, 'name': u'players'}], pprint(r)
+        users = self.session.query(model.User).all()
+        r =  [x .json for x in users]
+        assert r == [{'display_name': None,
+                      'email_address': None,
+                      'user_id': 1,
+                      'user_name': u'peggy'},
+                     {'display_name': None,
+                      'email_address': None,
+                      'user_id': 2,
+                      'user_name': u'sue'},
+                     {'display_name': None,
+                      'email_address': None,
+                      'user_id': 3,
+                      'user_name': u'bobby'},
+                     {'display_name': None,
+                      'email_address': None,
+                      'user_id': 4,
+                      'user_name': u'billy'}], pprint(r)
+        user = self.session.query(model.User).get(4)
+        r = [group.name for group in user.groups]
+        assert r == [u'students', u'players'], r
+        
+    def test_init_model_string(self):
+        self.loader = YamlLoader(['model'])
+        self.session = Session()
+        s = open(test_file).read()
+        self.loader.loads(self.session, s)

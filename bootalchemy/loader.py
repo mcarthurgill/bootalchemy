@@ -27,6 +27,17 @@ class Loader(object):
             self._references = {}
         else:
             self._references = references
+        
+        if not isinstance(model, list):
+            model = [model]
+        
+        self.modules = []
+        for item in model:
+            if isinstance(item, basestring):
+                self.modules.append(__import__(item))
+            else:
+                self.modules.append(item)
+        
         self.check_types = check_types
         
     def clear(self):
@@ -128,7 +139,17 @@ class Loader(object):
                 for name, items in group.iteritems():
                     if name in ['flush', 'commit', 'clear']:
                         continue
-                    klass = getattr(self.model, name)
+#                    klass = getattr(self.model, name)
+                    klass = None
+                    for module in self.modules:
+                        try:
+                            klass = getattr(module, name)
+                            break;
+                        except AttributeError, e:
+                            pass
+                    # check that the class was found.
+                    if klass is None:
+                        raise AttributeError('Class %s not found in any module' % name)
                     for item in items:
                         ref_name = None
                         keys = item.keys()

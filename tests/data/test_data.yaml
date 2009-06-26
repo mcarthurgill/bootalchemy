@@ -1,12 +1,12 @@
 -
   User: 
-   - {user_id: '&id', name: peggy}
-   - {name: sue}
+   - {user_id: '&id', user_name: peggy}
+   - {user_name: sue}
   flush:
   commit:
 -
   Group:
-   - {name: teachers, admin_id: '*id'}
+   - {name: teachers, group_id: '*id'}
    - 
     '&students_group':
      {group_id: '&students_group_id', name: students}
@@ -16,5 +16,5 @@
   flush:
 - 
   User:
-   - {name: bobby, groups: ['*students_group_id', '*players_group_id']}
-   - {name: billy, groups: ['*students_group', '*players_group']}
+   - {user_name: bobby, groups: ['*students_group', '*players_group']}
+   - {user_name: billy, groups: ['*students_group', '*players_group']}
