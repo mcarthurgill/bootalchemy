@@ -25,6 +25,8 @@ SOFTWARE.
 
 import re, datetime
 
+class ConverterError(Exception):pass
+
 timestamp_regexp = re.compile(
         r'''^(?P<year>[0-9][0-9][0-9][0-9])
             -(?P<month>[0-9][0-9]?)
@@ -39,6 +41,8 @@ timestamp_regexp = re.compile(
 
 def timestamp(value):
     match = timestamp_regexp.match(value)
+    if match is None:
+        raise ConverterError('Unknown DateTime format, %s try %%Y-%%m-%%d %%h:%%m:%%s.d'%value)
     values = match.groupdict()
     year = int(values['year'])
     month = int(values['month'])

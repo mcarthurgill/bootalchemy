@@ -50,6 +50,7 @@ class Loader(object):
         """
         create an object with the given data
         """
+        # xxx: introspect the class constructor and pull the items out of item that you can, assign the rest
         return klass(**item)
     
     def update_item(self, item):
@@ -174,13 +175,26 @@ class Loader(object):
                     session.commit()
                 if 'clear' in keys:
                     self.clear()
+                    
+        except AttributeError, e:
+            missing_refs = [(key, value) for key, value in item.iteritems() if value.startswith('*')]
+            self.log_error(e, data, klass, item)
+            if missing_refs:
+                log.error('*'*80)
+                log.error('It is very possible you are missing a reference, or require a "flush:" between blocks to store the references')
+                log.error('here is a list of references that were not accessible (key, value): %s'%missing_refs)
+                log.error('*'*80)
         except Exception, e:
+            self.log_error(e, data, klass, item)
+            raise e
+    def log_error(self, e, data, klass, item):
             log.error('error occured while loading yaml data with output:\n%s'%pformat(data))
             log.error('references:\n%s'%pformat(self._references))
             log.error('class: %s'%klass)
             log.error('item: %s'%item)
-            raise e
-
+            import traceback
+            log.error(traceback.format_exc())
+        
 class YamlLoader(Loader):
     
     def loadf(self, session, filename):
