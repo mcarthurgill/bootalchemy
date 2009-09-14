@@ -178,7 +178,7 @@ class Loader(object):
                     self.clear()
                     
         except AttributeError, e:
-            missing_refs = [(key, value) for key, value in item.iteritems() if value.startswith('*')]
+            missing_refs = [(key, value) for key, value in item.iteritems() if isinstance(value,basestring) and value.startswith('*')]
             self.log_error(e, data, klass, item)
             if missing_refs:
                 log.error('*'*80)
