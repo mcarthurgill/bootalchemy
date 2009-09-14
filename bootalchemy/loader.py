@@ -22,6 +22,7 @@ class Loader(object):
             introspect the target model class to re-cast the data appropriately.
     """
     def __init__(self, model, references=None, check_types=True):
+        self.source = 'UNKNOWN'
         self.model = model
         if references is None:
             self._references = {}
@@ -150,7 +151,7 @@ class Loader(object):
                             pass
                     # check that the class was found.
                     if klass is None:
-                        raise AttributeError('Class %s not found in any module' % name)
+                        raise AttributeError('Class %s from %s not found in any module' % (name , self.source))
                     for item in items:
                         ref_name = None
                         keys = item.keys()
@@ -198,6 +199,7 @@ class Loader(object):
 class YamlLoader(Loader):
     
     def loadf(self, session, filename):
+        self.source = filename
         s = open(filename).read()
         return self.loads(session, s)
     
