@@ -187,7 +187,7 @@ class Loader(object):
                 log.error('*'*80)
         except Exception, e:
             self.log_error(e, data, klass, item)
-            raise e
+            raise
     def log_error(self, e, data, klass, item):
             log.error('error occured while loading yaml data with output:\n%s'%pformat(data))
             log.error('references:\n%s'%pformat(self._references))
