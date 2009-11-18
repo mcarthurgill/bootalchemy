@@ -179,13 +179,16 @@ class Loader(object):
                     self.clear()
                     
         except AttributeError, e:
-            missing_refs = [(key, value) for key, value in item.iteritems() if isinstance(value,basestring) and value.startswith('*')]
-            self.log_error(sys.exc_info()[2], data, klass, item)
-            if missing_refs:
-                log.error('*'*80)
-                log.error('It is very possible you are missing a reference, or require a "flush:" between blocks to store the references')
-                log.error('here is a list of references that were not accessible (key, value): %s'%missing_refs)
-                log.error('*'*80)
+            if hasattr(item, 'iteritems'):
+                missing_refs = [(key, value) for key, value in item.iteritems() if isinstance(value,basestring) and value.startswith('*')]
+                self.log_error(e, data, klass, item)
+                if missing_refs:
+                    log.error('*'*80)
+                    log.error('It is very possible you are missing a reference, or require a "flush:" between blocks to store the references')
+                    log.error('here is a list of references that were not accessible (key, value): %s'%missing_refs)
+                    log.error('*'*80)
+            else:
+                self.log_error(e, data, klass, item)
         except Exception, e:
             self.log_error(sys.exc_info()[2], data, klass, item)
             raise
