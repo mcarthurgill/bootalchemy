@@ -104,10 +104,10 @@ class Loader(object):
         for table in mapper.tables:
             for key in obj.keys():
                 col = table.columns.get(key, None)
-                if col and isinstance(col.type, (Date, DateTime, Time)) and isinstance(obj[key], basestring):
+                if col is not None and isinstance(col.type, (Date, DateTime, Time)) and isinstance(obj[key], basestring):
                     obj[key] = timestamp(obj[key])
                     continue
-                if col and isinstance(col.type, Unicode) and isinstance(obj[key], basestring):
+                if col is not None and isinstance(col.type, Unicode) and isinstance(obj[key], basestring):
                     obj[key] = unicode(obj[key])
                     continue
         return obj
