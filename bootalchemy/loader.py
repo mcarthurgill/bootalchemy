@@ -4,7 +4,7 @@ import logging
 from pprint import pformat
 from converters import timestamp
 from sqlalchemy.orm import class_mapper
-from sqlalchemy import Unicode, Date, DateTime, Time
+from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Boolean
 
 log = logging.Logger('bootalchemy', level=logging.INFO)
 ch = logging.StreamHandler()
@@ -22,6 +22,8 @@ class Loader(object):
           check_types
             introspect the target model class to re-cast the data appropriately.
     """
+    default_encoding = 'utf-8'
+    
     def __init__(self, model, references=None, check_types=True):
         self.source = 'UNKNOWN'
         self.model = model
@@ -104,12 +106,21 @@ class Loader(object):
         for table in mapper.tables:
             for key in obj.keys():
                 col = table.columns.get(key, None)
-                if col is not None and isinstance(col.type, (Date, DateTime, Time)) and isinstance(obj[key], basestring):
-                    obj[key] = timestamp(obj[key])
+                value = obj[key]
+                if col is not None and isinstance(col.type, (Date, DateTime, Time)) and isinstance(value, basestring):
+                    obj[key] = timestamp(value)
                     continue
-                if col is not None and isinstance(col.type, Unicode) and isinstance(obj[key], basestring):
-                    obj[key] = unicode(obj[key])
+                if col is not None and isinstance(col.type, Unicode) and isinstance(value, str):
+                    obj[key] = unicode(value, self.default_encoding)
                     continue
+                #if col is not None and isinstance(col.type, Integer) and isinstance(value, basestring):
+                #    obj[key] = int(value)
+                #    continue
+                #if col is not None and isinstance(col.type, Boolean) and isinstance(value, basestring):
+                #    obj[key] = bool(value)
+                #    continue
+                #if col is not None and key == 'stat_type_type':
+                #    import ipdb; ipdb.set_trace();
         return obj
         
     def from_list(self, session, data):
