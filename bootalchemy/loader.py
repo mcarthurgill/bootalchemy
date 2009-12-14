@@ -3,7 +3,8 @@ import logging
 from pprint import pformat
 from converters import timestamp
 from sqlalchemy.orm import class_mapper
-from sqlalchemy import Unicode, Date, DateTime, Time
+from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String
+from sqlalchemy.dialects.postgresql.base import PGArray
 
 log = logging.Logger('bootalchemy', level=logging.INFO)
 ch = logging.StreamHandler()
@@ -21,6 +22,16 @@ class Loader(object):
           check_types
             introspect the target model class to re-cast the data appropriately.
     """
+    
+    default_casts = {Integer:int, 
+                     Unicode:unicode, 
+                     Date: timestamp, 
+                     DateTime: timestamp, 
+                     Time: timestamp, 
+                     Float:float,
+                     Boolean:bool,
+                     PGArray:list}
+    
     def __init__(self, model, references=None, check_types=True):
         self.source = 'UNKNOWN'
         self.model = model
@@ -103,12 +114,14 @@ class Loader(object):
         for table in mapper.tables:
             for key in obj.keys():
                 col = table.columns.get(key, None)
-                if col and isinstance(col.type, (Date, DateTime, Time)) and isinstance(obj[key], basestring):
-                    obj[key] = timestamp(obj[key])
-                    continue
-                if col and isinstance(col.type, Unicode) and isinstance(obj[key], basestring):
-                    obj[key] = unicode(obj[key])
-                    continue
+                value = obj[key]
+                if value is not None and col is not None and col.type is not None:
+                    for type_, func in self.default_casts.iteritems():
+                        if isinstance(col.type, type_):
+                            obj[key] = func(value)
+                            break
+                if value is None and col is not None and isinstance(col.type, (String, Unicode)):
+                    obj[key] = ''
         return obj
         
     def from_list(self, session, data):
