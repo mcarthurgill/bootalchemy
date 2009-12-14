@@ -1,4 +1,5 @@
 from yaml import load
+import sys
 import logging
 from pprint import pformat
 from converters import timestamp
@@ -22,6 +23,7 @@ class Loader(object):
           check_types
             introspect the target model class to re-cast the data appropriately.
     """
+    default_encoding = 'utf-8'
     
     default_casts = {Integer:int, 
                      Unicode:unicode, 
@@ -191,15 +193,18 @@ class Loader(object):
                     self.clear()
                     
         except AttributeError, e:
-            missing_refs = [(key, value) for key, value in item.iteritems() if isinstance(value,basestring) and value.startswith('*')]
-            self.log_error(e, data, klass, item)
-            if missing_refs:
-                log.error('*'*80)
-                log.error('It is very possible you are missing a reference, or require a "flush:" between blocks to store the references')
-                log.error('here is a list of references that were not accessible (key, value): %s'%missing_refs)
-                log.error('*'*80)
+            if hasattr(item, 'iteritems'):
+                missing_refs = [(key, value) for key, value in item.iteritems() if isinstance(value,basestring) and value.startswith('*')]
+                self.log_error(e, data, klass, item)
+                if missing_refs:
+                    log.error('*'*80)
+                    log.error('It is very possible you are missing a reference, or require a "flush:" between blocks to store the references')
+                    log.error('here is a list of references that were not accessible (key, value): %s'%missing_refs)
+                    log.error('*'*80)
+            else:
+                self.log_error(e, data, klass, item)
         except Exception, e:
-            self.log_error(e, data, klass, item)
+            self.log_error(sys.exc_info()[2], data, klass, item)
             raise
     def log_error(self, e, data, klass, item):
             log.error('error occured while loading yaml data with output:\n%s'%pformat(data))
@@ -207,7 +212,7 @@ class Loader(object):
             log.error('class: %s'%klass)
             log.error('item: %s'%item)
             import traceback
-            log.error(traceback.format_exc())
+            log.error(traceback.format_exc(e))
         
 class YamlLoader(Loader):
     
@@ -218,4 +223,5 @@ class YamlLoader(Loader):
     
     def loads(self, session, s):
         data = load(s)
-        return self.from_list(session, data)
+        if data:
+            return self.from_list(session, data)
