@@ -13,8 +13,12 @@
    - 
     '&players_group':
       {group_id: '&players_group_id', name: players}
+   - 
+    '&bullies_group':
+      {group_id: '&bullies_group_id', name: bullies}
   flush:
 - 
   User:
    - {user_name: bobby, groups: ['*students_group', '*players_group']}
    - {user_name: billy, groups: ['*students_group', '*players_group']}
+   - {user_name: bully, groups: ['*bullies_group']}

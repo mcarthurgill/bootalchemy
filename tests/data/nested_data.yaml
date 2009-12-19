@@ -1,0 +1,16 @@
+- User: 
+  - { user_id: '&id', user_name: peggy }
+  - { user_name: sue }
+  flush:
+
+- Group:
+  - { name: teachers, group_id: '*id' }
+  - '&students_group': { group_id: '&students_group_id', name: students }
+  - '&players_group': { group_id: '&players_group_id', name: players }
+  flush:
+
+- User:
+  - { user_name: bobby, groups: ['*students_group', '*players_group'] }
+  - { user_name: billy, groups: ['*students_group', '*players_group'] }
+  - { user_name: bully, groups: ['!Group' : { group_id: '&bullies_group_id', name: bullies }] }
+  flush:
