@@ -36,7 +36,10 @@ class TestYamlLoader:
         r =  [x .json for x in groups]
         assert r == [{'display_name': None, 'group_id': 1, 'name': u'teachers'},
                      {'display_name': None, 'group_id': 2, 'name': u'students'},
-                     {'display_name': None, 'group_id': 3, 'name': u'players'}], pprint(r)
+                     {'display_name': None, 'group_id': 3, 'name': u'players'},
+                     {'display_name': None, 'group_id': 4, 'name': u'\xe0\xe9\xef\xf4u'},
+                     
+                     ], pprint(r)
         users = self.session.query(model.User).all()
         r =  [x .json for x in users]
         assert r == [{'display_name': None,
@@ -54,7 +57,13 @@ class TestYamlLoader:
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 4,
-                      'user_name': u'billy'}], pprint(r)
+                      'user_name': u'billy'},
+                     {'display_name': None,
+                      'email_address': None,
+                      'user_id': 5,
+                      'user_name': u'\xe9cho'},
+                      
+                      ], pprint(r)
         user = self.session.query(model.User).get(4)
         r = [group.name for group in user.groups]
         assert r == [u'students', u'players'], r

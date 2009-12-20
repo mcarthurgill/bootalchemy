@@ -11,6 +11,7 @@ log = logging.Logger('bootalchemy', level=logging.INFO)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 log.addHandler(ch)
+
 class Loader(object):
     """
        Basic Loader 
@@ -25,16 +26,22 @@ class Loader(object):
     """
     default_encoding = 'utf-8'
     
-    default_casts = {Integer:int, 
-                     Unicode:unicode, 
-                     Date: timestamp, 
-                     DateTime: timestamp, 
-                     Time: timestamp, 
-                     Float:float,
-                     Boolean:bool,
-                     PGArray:list}
-    
+    def unicode_converter(self, value):
+        if isinstance(value, unicode):
+            return value
+        else:
+            return unicode(value, self.default_encoding)
+
     def __init__(self, model, references=None, check_types=True):
+        self.default_casts = {Integer:int, 
+                              Unicode: self.unicode_converter,
+                              Date: timestamp, 
+                              DateTime: timestamp, 
+                              Time: timestamp, 
+                              Float:float,
+                              Boolean:bool,
+                              PGArray:list}
+    
         self.source = 'UNKNOWN'
         self.model = model
         if references is None:
