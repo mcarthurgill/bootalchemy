@@ -20,7 +20,7 @@ except ImportError:
              'Please install it. Example: easy_install hashlib')
 
 from sqlalchemy import Table, ForeignKey, Column, MetaData
-from sqlalchemy.types import Unicode, Integer, DateTime
+from sqlalchemy.types import Unicode, Integer, DateTime, Boolean
 from sqlalchemy.orm import relation, synonym
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -126,6 +126,7 @@ class User(DeclarativeBase):
     _password = Column('password', Unicode(80),
                        info={'rum': {'field':'Password'}})
 
+    active = Column(Boolean)
 #    created = Column(DateTime, default=datetime.now)
 
     #{ Special methods

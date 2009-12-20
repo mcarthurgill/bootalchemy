@@ -38,29 +38,34 @@ class TestYamlLoader:
                      {'display_name': None, 'group_id': 2, 'name': u'students'},
                      {'display_name': None, 'group_id': 3, 'name': u'players'},
                      {'display_name': None, 'group_id': 4, 'name': u'\xe0\xe9\xef\xf4u'},
-                     
                      ], pprint(r)
         users = self.session.query(model.User).all()
         r =  [x .json for x in users]
         assert r == [{'display_name': None,
                       'email_address': None,
                       'user_id': 1,
-                      'user_name': u'peggy'},
+                      'user_name': u'peggy',
+                      'active': False},
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 2,
-                      'user_name': u'sue'},
+                      'user_name': u'sue',
+                      'active': True,
+                     },
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 3,
+                      'active': False,
                       'user_name': u'bobby'},
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 4,
+                      'active': True,
                       'user_name': u'billy'},
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 5,
+                      'active': False,
                       'user_name': u'\xe9cho'},
                       
                       ], pprint(r)

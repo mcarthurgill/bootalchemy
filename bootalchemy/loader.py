@@ -6,6 +6,7 @@ from converters import timestamp
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String
 from sqlalchemy.dialects.postgresql.base import PGArray
+from functools import partial
 
 log = logging.Logger('bootalchemy', level=logging.INFO)
 ch = logging.StreamHandler()
@@ -26,20 +27,20 @@ class Loader(object):
     """
     default_encoding = 'utf-8'
     
-    def unicode_converter(self, value):
-        if isinstance(value, unicode):
+    def cast(self, type_, cast_func, value):
+        if type(value) == type_:
             return value
         else:
-            return unicode(value, self.default_encoding)
+            return cast_func(value)
 
     def __init__(self, model, references=None, check_types=True):
-        self.default_casts = {Integer:int, 
-                              Unicode: self.unicode_converter,
+        self.default_casts = {Integer:int,
+                              Unicode: partial(self.cast, unicode, lambda x: unicode(x, self.default_encoding)),
                               Date: timestamp, 
                               DateTime: timestamp, 
                               Time: timestamp, 
                               Float:float,
-                              Boolean:bool,
+                              Boolean: partial(self.cast, bool, lambda x: x.lower() not in ('f', 'false', 'no', 'n')),
                               PGArray:list}
     
         self.source = 'UNKNOWN'
