@@ -16,9 +16,13 @@
    -
     '&unicode_group':
       {group_id: '&unicode_group_id', name: !!python/str àéïôu}
+   - 
+    '&bullies_group':
+      {group_id: '&bullies_group_id', name: bullies}
   flush:
 - 
   User:
    - {user_name: bobby, active: No, groups: ['*students_group', '*players_group']}
    - {user_name: billy, active: Y, groups: ['*students_group', '*players_group']}
    - {user_name: écho, active: N, groups: ['*unicode_group']}
+   - {user_name: bully, active: Y, groups: ['*bullies_group']}

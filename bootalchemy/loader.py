@@ -73,38 +73,58 @@ class Loader(object):
         create an object with the given data
         """
         # xxx: introspect the class constructor and pull the items out of item that you can, assign the rest
-        return klass(**item)
+        try:
+            obj = klass(**item)
+        except TypeError, e:
+            raise TypeError("The class, %s, cannot be given the items %s. Original Error: %s" % 
+                (klass.__name__, str(item), str(e)))
+            
+        return obj
+        
+    def resolve_value(self, value):
+        """
+        `value` is a string or list that will be applied to an ObjectName's attribute.
+        Link in references when it hits a value that starts with an "*"
+        Ignores values that start with an "&"
+        Nesting also happens here: Create new objects for values that start with a "!"
+        Recurse through lists.        
+        """
+        if isinstance(value, basestring):
+            if value.startswith('&'):
+                return None
+            elif value.startswith('*') and value[1:] in self._references:
+                return self._references[value[1:]]
+        elif isinstance(value, dict):
+            keys = value.keys()
+            if len(keys) == 1 and keys[0].startswith('!'):
+                klass_name = keys[0][1:]
+                items = value[keys[0]]
+                klass = self.get_klass(klass_name)
+                
+                if isinstance(items, dict):
+                    return self.add_klass_with_values(klass, items)
+                elif isinstance(items, list):
+                    return self.add_klasses(klass, items)
+                else:
+                    raise TypeError('You can only give a nested value a list or a dict. You tried to feed a %s into a %s.' %
+                        (items.__class__.__name__, klass_name))
+        elif isinstance(value, list):
+            return [self.resolve_value(list_item) for list_item in value]
+        
+        # an 'assert isinstance(value, basestring) and value[0:1] not in ('&', '*', '!') could probably go here.
+        return value
     
-    def update_item(self, item):
-        new_item = item.copy()
-        for key, value in new_item.iteritems():
-            if isinstance(value, basestring) and value.startswith('&'):
-                new_item[key] = None
-            if isinstance(value, basestring) and value.startswith('*'):
-                id = value[1:]
-                new_item[key] = self._references.get(id, new_item[key])
-            if isinstance(value, list):
-                l = []
-                for i in value:
-                    if isinstance(i, basestring) and i.startswith('*'):
-                        id = i[1:]
-                        l.append(self._references.get(id, i))
-                        continue
-                    l.append(i)
-                new_item[key] = l
-        return new_item
-
     def has_references(self, item):
         for key, value in item.iteritems():
             if isinstance(value, basestring) and value.startswith('&'):
                 return True
-
+    
     def add_reference(self, key, obj):
         """
         add a reference to the internal reference dictionary
         """
         self._references[key[1:]] = obj
-            
+    
     def set_references(self, obj, item):
         """
         extracts the value from the object and stores them in the reference dictionary.
@@ -116,7 +136,7 @@ class Loader(object):
                 for i in value:
                     if isinstance(value, basestring) and i.startswith('&'):
                         self._references[value[1:]] = getattr(obj, value[1:])
-
+    
     def _check_types(self, klass, obj):
         if not self.check_types:
             return obj
@@ -133,10 +153,65 @@ class Loader(object):
                 if value is None and col is not None and isinstance(col.type, (String, Unicode)):
                     obj[key] = ''
         return obj
+    
+    def get_klass(self, klass_name):
+        klass = None
+        for module in self.modules:
+            try:
+                klass = getattr(module, klass_name)
+                break;
+            except AttributeError:
+                pass
+        # check that the class was found.
+        if klass is None:
+            raise AttributeError('Class %s from %s not found in any module' % (klass_name , self.source))
+        return klass
+    
+    def add_klass_with_values(self, klass, values):
+        """
+        klass is a type, values is a dictionary. Returns a new object.
+        """
+        ref_name = None
+        keys = values.keys()
+        if len(keys) == 1 and keys[0].startswith('&') and isinstance(values[keys[0]], dict):
+            ref_name = keys[0]
+            values = values[ref_name] # ie. item.values[0]
         
+        # Values is a dict of attributes and their values for any ObjectName.
+        # Copy the given dict, iterate all key-values and process those with special directions (nested creations or links).
+        resolved_values = values.copy()
+        for key, value in resolved_values.iteritems():
+            resolved_values[key] = self.resolve_value(value)
+        
+        # _check_types currently does nothing (unless you call the loaded with a check_types parameter)
+        resolved_values = self._check_types(klass, resolved_values)
+        
+        obj = self.create_obj(klass, resolved_values)
+        self.session.add(obj)
+        
+        if ref_name:
+            self.add_reference(ref_name, obj)
+        if self.has_references(values):
+            self.session.flush()
+            self.set_references(obj, values)
+        
+        return obj
+    
+    def add_klasses(self, klass, items):
+        """
+        Returns a list of the new objects. These objects are already in session, so you don't *need* to do anything with them.
+        """
+        objects = []
+        for item in items:
+            obj = self.add_klass_with_values(klass, item)
+            objects.append(obj)
+        return objects
+            
+            
+                                
     def from_list(self, session, data):
         """
-        extract data from a list of groups in the form:
+        Extract data from a list of groups in the form:
         
         [
             { #start of the first grouping
@@ -155,7 +230,52 @@ class Loader(object):
             } #end of the next grouping
         ]
 
+        Data can also be nested, for example; here are three different ways to do it. The following:
+        
+        --- Mountaineering Data Document
+        - MountainRegion:
+          - name: Appalacians
+            coast: East
+            climate: { '!Climate': { high: 85, low: 13, precipitation: '54 inches annually' } }
+            ranges:
+              - '!MountainRange': { name: Blue Ridge Mountains, peak: Mount Mitchell }
+              - '!MountainRange': { name: Piedmont Plateau, peak: Piedmont Crescent Peak }
+            valleys:
+              '!ValleyArea': [ { name: Hudson River Crevasse }, { name: Susquehanna Valleyway } ]
+              
+          Is equivalent to this:        
+        
+        --- Mountaineering Data Document
+        - Climate:
+            '&appal-climate': { high: 85, low: 13, precipitation: '54 inches annually' }
+        - MountainRange: ['&blue-ridge': { name: Blue Ridge Mountains, peak: Mount Mitchell },
+                          '&peidmont': { name: Piedmont Plateau, peak: Piedmont Crescent Peak }]
+        - ValleyArea:
+          - '&hudson':
+              name: Hudson River Crevasse
+          - '&susq':
+              name: Susquehanna Valleyway
+        - MountainRegion:
+          - name: Appalacians
+            coast: East
+            climate: '*appal-climate'
+            ranges: ['*blue-ridge', '*peidmont']
+            valleys: ['*hudson', '*susq']            
+        
+        However, the nested data is not and cannot be added to the list of references. It is anonymous in that sense.     
+        
+        Careful! Here are some pitfalls:
+        
+        This would double list the valleys. Not good. Like saying "valleys: [['*hudson', '*susq']]"
+            valleys:
+              - '!ValleyArea': [ { name: Hudson River Crevasse }, { name: Susquehanna Valleyway } ]
+        
+        This is not valid:
+            climate: '!Climate': { high: 85, low: 13, precipitation: '54 inches annually' }
+            
+        Also, literal tags, like !Climate (without quotes), do not work, and will generally break.        
         """
+        self.session = session
         klass = None
         item = None
         group = None
@@ -164,34 +284,10 @@ class Loader(object):
                 for name, items in group.iteritems():
                     if name in ['flush', 'commit', 'clear']:
                         continue
-#                    klass = getattr(self.model, name)
-                    klass = None
-                    for module in self.modules:
-                        try:
-                            klass = getattr(module, name)
-                            break;
-                        except AttributeError, e:
-                            pass
-                    # check that the class was found.
-                    if klass is None:
-                        raise AttributeError('Class %s from %s not found in any module' % (name , self.source))
-                    for item in items:
-                        ref_name = None
-                        keys = item.keys()
-                        if len(keys) == 1 and keys[0].startswith('&') and isinstance(item[keys[0]], dict):
-                            ref_name = keys[0]
-                            item = item[ref_name]
-                            name = name[1:]
-                        new_item = self.update_item(item)
-                        new_item = self._check_types(klass, new_item)
-                        obj = self.create_obj(klass, new_item)
-                        session.add(obj)
-                        if ref_name:
-                            self.add_reference(ref_name, obj)
-                        if self.has_references(item):
-                            session.flush()
-                            self.set_references(obj, item)
-
+                    klass = self.get_klass(name)
+                    self.add_klasses(klass, items)
+                
+                # still in 'for group in data'
                 keys = group.keys()
                 if 'flush' in keys:
                     session.flush()
@@ -214,6 +310,9 @@ class Loader(object):
         except Exception, e:
             self.log_error(sys.exc_info()[2], data, klass, item)
             raise
+            
+        self.session = None
+
     def log_error(self, e, data, klass, item):
             log.error('error occured while loading yaml data with output:\n%s'%pformat(data))
             log.error('references:\n%s'%pformat(self._references))
