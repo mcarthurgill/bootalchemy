@@ -4,7 +4,7 @@ import logging
 from pprint import pformat
 from converters import timestamp
 from sqlalchemy.orm import class_mapper
-from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String
+from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String, Binary
 from sqlalchemy.dialects.postgresql.base import PGArray
 from functools import partial
 
@@ -41,7 +41,9 @@ class Loader(object):
                               Time: timestamp,
                               Float:float,
                               Boolean: partial(self.cast, bool, lambda x: x.lower() not in ('f', 'false', 'no', 'n')),
-                              PGArray:list}
+                              PGArray:list,
+                              Binary: partial(self.cast, str, lambda x: x.encode('base64'))
+                              }
 
         self.source = 'UNKNOWN'
         self.model = model

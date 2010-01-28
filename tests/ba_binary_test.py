@@ -24,7 +24,7 @@ class model:
 s = '''
 -
  Simple:
-    - {hash: '1yrdLS8QDAKYe28hBRURx3JEhLg='}
+    - {hash: !!binary '1yrdLS8QDAKYe28hBRURx3JEhLg='}
 '''
 
 if __name__ == '__main__':
