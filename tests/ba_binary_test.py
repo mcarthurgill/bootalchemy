@@ -6,7 +6,7 @@ metadata = sa.MetaData()
 
 simple_table = sa.Table('simple', metadata,
     sa.Column('simp_id', sa_types.Integer, primary_key=True),
-    sa.Column('hash', sa_types.String(128)),
+    sa.Column('hash', sa_types.Binary),
 )
 
 
