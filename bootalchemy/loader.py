@@ -15,8 +15,8 @@ log.addHandler(ch)
 
 class Loader(object):
     """
-       Basic Loader 
-       
+       Basic Loader
+
        *Arguments*
           model
             list of classes in your model.
@@ -26,7 +26,7 @@ class Loader(object):
             introspect the target model class to re-cast the data appropriately.
     """
     default_encoding = 'utf-8'
-    
+
     def cast(self, type_, cast_func, value):
         if type(value) == type_:
             return value
@@ -36,38 +36,38 @@ class Loader(object):
     def __init__(self, model, references=None, check_types=True):
         self.default_casts = {Integer:int,
                               Unicode: partial(self.cast, unicode, lambda x: unicode(x, self.default_encoding)),
-                              Date: timestamp, 
-                              DateTime: timestamp, 
-                              Time: timestamp, 
+                              Date: timestamp,
+                              DateTime: timestamp,
+                              Time: timestamp,
                               Float:float,
                               Boolean: partial(self.cast, bool, lambda x: x.lower() not in ('f', 'false', 'no', 'n')),
                               PGArray:list}
-    
+
         self.source = 'UNKNOWN'
         self.model = model
         if references is None:
             self._references = {}
         else:
             self._references = references
-        
+
         if not isinstance(model, list):
             model = [model]
-        
+
         self.modules = []
         for item in model:
             if isinstance(item, basestring):
                 self.modules.append(__import__(item))
             else:
                 self.modules.append(item)
-        
+
         self.check_types = check_types
-        
+
     def clear(self):
         """
         clear the existing references
         """
         self._references = {}
-    
+
     def create_obj(self, klass, item):
         """
         create an object with the given data
@@ -76,18 +76,18 @@ class Loader(object):
         try:
             obj = klass(**item)
         except TypeError, e:
-            raise TypeError("The class, %s, cannot be given the items %s. Original Error: %s" % 
+            raise TypeError("The class, %s, cannot be given the items %s. Original Error: %s" %
                 (klass.__name__, str(item), str(e)))
-            
+
         return obj
-        
+
     def resolve_value(self, value):
         """
         `value` is a string or list that will be applied to an ObjectName's attribute.
         Link in references when it hits a value that starts with an "*"
         Ignores values that start with an "&"
         Nesting also happens here: Create new objects for values that start with a "!"
-        Recurse through lists.        
+        Recurse through lists.
         """
         if isinstance(value, basestring):
             if value.startswith('&'):
@@ -100,7 +100,7 @@ class Loader(object):
                 klass_name = keys[0][1:]
                 items = value[keys[0]]
                 klass = self.get_klass(klass_name)
-                
+
                 if isinstance(items, dict):
                     return self.add_klass_with_values(klass, items)
                 elif isinstance(items, list):
@@ -110,21 +110,21 @@ class Loader(object):
                         (items.__class__.__name__, klass_name))
         elif isinstance(value, list):
             return [self.resolve_value(list_item) for list_item in value]
-        
+
         # an 'assert isinstance(value, basestring) and value[0:1] not in ('&', '*', '!') could probably go here.
         return value
-    
+
     def has_references(self, item):
         for key, value in item.iteritems():
             if isinstance(value, basestring) and value.startswith('&'):
                 return True
-    
+
     def add_reference(self, key, obj):
         """
         add a reference to the internal reference dictionary
         """
         self._references[key[1:]] = obj
-    
+
     def set_references(self, obj, item):
         """
         extracts the value from the object and stores them in the reference dictionary.
@@ -136,7 +136,7 @@ class Loader(object):
                 for i in value:
                     if isinstance(value, basestring) and i.startswith('&'):
                         self._references[value[1:]] = getattr(obj, value[1:])
-    
+
     def _check_types(self, klass, obj):
         if not self.check_types:
             return obj
@@ -153,7 +153,7 @@ class Loader(object):
                 if value is None and col is not None and isinstance(col.type, (String, Unicode)):
                     obj[key] = ''
         return obj
-    
+
     def get_klass(self, klass_name):
         klass = None
         for module in self.modules:
@@ -166,7 +166,7 @@ class Loader(object):
         if klass is None:
             raise AttributeError('Class %s from %s not found in any module' % (klass_name , self.source))
         return klass
-    
+
     def add_klass_with_values(self, klass, values):
         """
         klass is a type, values is a dictionary. Returns a new object.
@@ -176,27 +176,27 @@ class Loader(object):
         if len(keys) == 1 and keys[0].startswith('&') and isinstance(values[keys[0]], dict):
             ref_name = keys[0]
             values = values[ref_name] # ie. item.values[0]
-        
+
         # Values is a dict of attributes and their values for any ObjectName.
         # Copy the given dict, iterate all key-values and process those with special directions (nested creations or links).
         resolved_values = values.copy()
         for key, value in resolved_values.iteritems():
             resolved_values[key] = self.resolve_value(value)
-        
+
         # _check_types currently does nothing (unless you call the loaded with a check_types parameter)
         resolved_values = self._check_types(klass, resolved_values)
-        
+
         obj = self.create_obj(klass, resolved_values)
         self.session.add(obj)
-        
+
         if ref_name:
             self.add_reference(ref_name, obj)
         if self.has_references(values):
             self.session.flush()
             self.set_references(obj, values)
-        
+
         return obj
-    
+
     def add_klasses(self, klass, items):
         """
         Returns a list of the new objects. These objects are already in session, so you don't *need* to do anything with them.
@@ -206,20 +206,20 @@ class Loader(object):
             obj = self.add_klass_with_values(klass, item)
             objects.append(obj)
         return objects
-            
-            
-                                
+
+
+
     def from_list(self, session, data):
         """
         Extract data from a list of groups in the form:
-        
+
         [
             { #start of the first grouping
               ObjectName:[ #start of objects of type ObjectName
                           {'attribute':'value', 'attribute':'value' ... more attributes},
                           {'attribute':'value', 'attribute':'value' ... more attributes},
                           ...
-                          } 
+                          }
                           ]
               ObjectName: [ ... more attr dicts here ... ]
               [commit:None] #optionally commit at the end of this grouping
@@ -231,7 +231,7 @@ class Loader(object):
         ]
 
         Data can also be nested, for example; here are three different ways to do it. The following:
-        
+
         --- Mountaineering Data Document
         - MountainRegion:
           - name: Appalacians
@@ -242,9 +242,9 @@ class Loader(object):
               - '!MountainRange': { name: Piedmont Plateau, peak: Piedmont Crescent Peak }
             valleys:
               '!ValleyArea': [ { name: Hudson River Crevasse }, { name: Susquehanna Valleyway } ]
-              
-          Is equivalent to this:        
-        
+
+          Is equivalent to this:
+
         --- Mountaineering Data Document
         - Climate:
             '&appal-climate': { high: 85, low: 13, precipitation: '54 inches annually' }
@@ -260,20 +260,20 @@ class Loader(object):
             coast: East
             climate: '*appal-climate'
             ranges: ['*blue-ridge', '*peidmont']
-            valleys: ['*hudson', '*susq']            
-        
-        However, the nested data is not and cannot be added to the list of references. It is anonymous in that sense.     
-        
+            valleys: ['*hudson', '*susq']
+
+        However, the nested data is not and cannot be added to the list of references. It is anonymous in that sense.
+
         Careful! Here are some pitfalls:
-        
+
         This would double list the valleys. Not good. Like saying "valleys: [['*hudson', '*susq']]"
             valleys:
               - '!ValleyArea': [ { name: Hudson River Crevasse }, { name: Susquehanna Valleyway } ]
-        
+
         This is not valid:
             climate: '!Climate': { high: 85, low: 13, precipitation: '54 inches annually' }
-            
-        Also, literal tags, like !Climate (without quotes), do not work, and will generally break.        
+
+        Also, literal tags, like !Climate (without quotes), do not work, and will generally break.
         """
         self.session = session
         klass = None
@@ -286,7 +286,7 @@ class Loader(object):
                         continue
                     klass = self.get_klass(name)
                     self.add_klasses(klass, items)
-                
+
                 # still in 'for group in data'
                 keys = group.keys()
                 if 'flush' in keys:
@@ -295,7 +295,7 @@ class Loader(object):
                     session.commit()
                 if 'clear' in keys:
                     self.clear()
-                    
+
         except AttributeError, e:
             if hasattr(item, 'iteritems'):
                 missing_refs = [(key, value) for key, value in item.iteritems() if isinstance(value,basestring) and value.startswith('*')]
@@ -310,7 +310,7 @@ class Loader(object):
         except Exception, e:
             self.log_error(sys.exc_info()[2], data, klass, item)
             raise
-            
+
         self.session = None
 
     def log_error(self, e, data, klass, item):
@@ -320,15 +320,21 @@ class Loader(object):
             log.error('item: %s'%item)
             import traceback
             log.error(traceback.format_exc(e))
-        
+
 class YamlLoader(Loader):
-    
+
     def loadf(self, session, filename):
+        """
+        Load a yaml file by filename.
+        """
         self.source = filename
         s = open(filename).read()
         return self.loads(session, s)
-    
+
     def loads(self, session, s):
+        """
+        Load a yaml string into the database.
+        """
         data = load(s)
         if data:
             return self.from_list(session, data)
