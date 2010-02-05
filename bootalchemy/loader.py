@@ -2,10 +2,11 @@ from yaml import load
 import sys
 import logging
 from pprint import pformat
-from converters import timestamp
+from converters import timestamp, timeonly
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String, Binary
 from sqlalchemy.dialects.postgresql.base import PGArray
+from sqlalchemy.exceptions import IntegrityError
 from functools import partial
 
 log = logging.Logger('bootalchemy', level=logging.INFO)
@@ -36,9 +37,9 @@ class Loader(object):
     def __init__(self, model, references=None, check_types=True):
         self.default_casts = {Integer:int,
                               Unicode: partial(self.cast, unicode, lambda x: unicode(x, self.default_encoding)),
-                              Date: timestamp,
-                              DateTime: timestamp,
-                              Time: timestamp,
+                              Date: timestamp, 
+                              DateTime: timestamp, 
+                              Time: timeonly, 
                               Float:float,
                               Boolean: partial(self.cast, bool, lambda x: x.lower() not in ('f', 'false', 'no', 'n')),
                               PGArray:list,
@@ -80,6 +81,12 @@ class Loader(object):
         except TypeError, e:
             raise TypeError("The class, %s, cannot be given the items %s. Original Error: %s" %
                 (klass.__name__, str(item), str(e)))
+        except AttributeError, e:
+            raise AttributeError("Object creation failed while initializing a %s with the items %s. Original Error: %s" %
+                (klass.__name__, str(item), str(e)))
+        except KeyError, e:
+            raise KeyError("On key, %s, failed while initializing a %s with the items %s. %s.keys() = %s" %
+                (str(e), klass.__name__, str(item), klass.__name__, str(klass.__dict__.keys())))
 
         return obj
 
@@ -94,8 +101,11 @@ class Loader(object):
         if isinstance(value, basestring):
             if value.startswith('&'):
                 return None
-            elif value.startswith('*') and value[1:] in self._references:
-                return self._references[value[1:]]
+            elif value.startswith('*'):
+                if value[1:] in self._references:
+                    return self._references[value[1:]]
+                else:
+                    raise Exception('The pointer %(val)s could not be found. Make sure that %(val)s is declared before it is used.' % { 'val': value })
         elif isinstance(value, dict):
             keys = value.keys()
             if len(keys) == 1 and keys[0].startswith('!'):
@@ -281,21 +291,19 @@ class Loader(object):
         klass = None
         item = None
         group = None
+        skip_keys = ['flush', 'commit', 'clear']
         try:
             for group in data:
                 for name, items in group.iteritems():
-                    if name in ['flush', 'commit', 'clear']:
-                        continue
-                    klass = self.get_klass(name)
-                    self.add_klasses(klass, items)
-
-                # still in 'for group in data'
-                keys = group.keys()
-                if 'flush' in keys:
+                    if name not in skip_keys:
+                        klass = self.get_klass(name)
+                        self.add_klasses(klass, items)
+                
+                if 'flush' in group:
                     session.flush()
-                if 'commit' in keys:
+                if 'commit' in group:
                     session.commit()
-                if 'clear' in keys:
+                if 'clear' in group:
                     self.clear()
 
         except AttributeError, e:
@@ -309,6 +317,9 @@ class Loader(object):
                     log.error('*'*80)
             else:
                 self.log_error(e, data, klass, item)
+        # except IntegrityError, e:
+        #     raise IntegrityError("Error while inserting %s. Original Error: %s" % 
+        #         (klass.__name__, str(item), str(e)))
         except Exception, e:
             self.log_error(sys.exc_info()[2], data, klass, item)
             raise

@@ -38,7 +38,7 @@ timestamp_regexp = re.compile(
             (?:\.(?P<fraction>[0-9]*))?
             (?:[ \t]*(?P<tz>Z|(?P<tz_sign>[-+])(?P<tz_hour>[0-9][0-9]?)
             (?::(?P<tz_minute>[0-9][0-9]))?))?)?$''', re.X)
-
+            
 def timestamp(value):
     match = timestamp_regexp.match(value)
     if match is None:
@@ -69,3 +69,27 @@ def timestamp(value):
     if delta:
         data -= delta
     return data
+
+timeonly_regexp = re.compile(
+        r'''^(?P<hour>[0-9][0-9]?)
+            :(?P<minute>[0-9][0-9])
+            (?::(?P<second>[0-9][0-9]))?
+            (?:\.(?P<fraction>[0-9]*))?$''', re.X)
+
+def timeonly(value):
+    match = timeonly_regexp.match(value)
+    if match is None:
+        raise ConverterError('Unknown Time format, %s try HH:MM:SS.dddddd'%value)
+    values = match.groupdict()
+    hour = int(values['hour'])
+    minute = int(values['minute'])
+    second = 0
+    if values['second']:
+        second = int(values['second'])
+    fraction = 0
+    if values['fraction']:
+        fraction = values['fraction'][:6]
+        while len(fraction) < 6:
+            fraction += '0'
+        fraction = int(fraction)
+    return datetime.time(hour, minute, second, fraction)
