@@ -5,7 +5,6 @@ from pprint import pformat
 from converters import timestamp, timeonly
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String, Binary
-from sqlalchemy.dialects.postgresql.base import PGArray
 from sqlalchemy.exceptions import IntegrityError
 from functools import partial
 
@@ -13,6 +12,13 @@ log = logging.Logger('bootalchemy', level=logging.INFO)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 log.addHandler(ch)
+
+# Support for SQLAlchemy 0.5 while 0.6 is in beta. This will be removed in future versions.
+try:
+    from sqlalchemy.dialects.postgresql.base import PGArray
+except ImportError:
+    log.error('You really should upgrade to SQLAlchemy=>0.6 to get the full bootalchemy experience')
+    PGArray = None
 
 class Loader(object):
     """
@@ -42,10 +48,11 @@ class Loader(object):
                               Time: timeonly, 
                               Float:float,
                               Boolean: partial(self.cast, bool, lambda x: x.lower() not in ('f', 'false', 'no', 'n')),
-                              PGArray:list,
                               Binary: partial(self.cast, str, lambda x: x.encode('base64'))
                               }
-
+        if PGArray:
+            self.default_casts[PGArray] = list
+                              
         self.source = 'UNKNOWN'
         self.model = model
         if references is None:
