@@ -86,12 +86,15 @@ class Loader(object):
         try:
             obj = klass(**item)
         except TypeError, e:
+            self.log_error(e, None, klass, item)
             raise TypeError("The class, %s, cannot be given the items %s. Original Error: %s" %
                 (klass.__name__, str(item), str(e)))
         except AttributeError, e:
+            self.log_error(e, None, klass, item)
             raise AttributeError("Object creation failed while initializing a %s with the items %s. Original Error: %s" %
                 (klass.__name__, str(item), str(e)))
         except KeyError, e:
+            self.log_error(e, None, klass, item)
             raise KeyError("On key, %s, failed while initializing a %s with the items %s. %s.keys() = %s" %
                 (str(e), klass.__name__, str(item), klass.__name__, str(klass.__dict__.keys())))
 
