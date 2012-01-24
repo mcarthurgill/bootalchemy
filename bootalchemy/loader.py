@@ -5,7 +5,10 @@ from pprint import pformat
 from converters import timestamp, timeonly
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String, Binary
-from sqlalchemy.exceptions import IntegrityError
+try:
+    from sqlalchemy.exc import IntegrityError
+except ImportError:
+    from sqlalchemy.exceptions import IntegrityError
 from functools import partial
 
 log = logging.Logger('bootalchemy', level=logging.INFO)
@@ -327,12 +330,12 @@ class Loader(object):
                     log.error('*'*80)
             else:
                 self.log_error(e, data, klass, item)
-        # except IntegrityError, e:
-        #     raise IntegrityError("Error while inserting %s. Original Error: %s" % 
-        #         (klass.__name__, str(item), str(e)))
-        except Exception, e:
-            self.log_error(sys.exc_info()[2], data, klass, item)
-            raise
+        ## except IntegrityError, e:
+        ##     raise IntegrityError("Error while inserting %s. Original Error: %s" % 
+        ##         (klass.__name__, str(item), str(e)))
+        #except Exception, e:
+        #    self.log_error(sys.exc_info()[2], data, klass, item)
+        #    raise
 
         self.session = None
 
