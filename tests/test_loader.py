@@ -34,48 +34,48 @@ class TestYamlLoader:
         self.loader.loads(self.session, s)
         groups = self.session.query(model.Group).all()
         r =  [x .json for x in groups]
-        assert r == [{'display_name': None, 'group_id': 1, 'name': u'teachers'},
-                     {'display_name': None, 'group_id': 2, 'name': u'students'},
-                     {'display_name': None, 'group_id': 3, 'name': u'players'},
-                     {'display_name': None, 'group_id': 4, 'name': u'\xe0\xe9\xef\xf4u'},
-                     {'display_name': None, 'group_id': 5, 'name': u'bullies'}
+        assert r == [{'display_name': None, 'group_id': 1, 'name': 'teachers'},
+                     {'display_name': None, 'group_id': 2, 'name': 'students'},
+                     {'display_name': None, 'group_id': 3, 'name': 'players'},
+                     {'display_name': None, 'group_id': 4, 'name': '\xe0\xe9\xef\xf4u'},
+                     {'display_name': None, 'group_id': 5, 'name': 'bullies'}
                     ], pprint(r)
         users = self.session.query(model.User).all()
         r =  [x .json for x in users]
         assert r == [{'display_name': None,
                       'email_address': None,
                       'user_id': 1,
-                      'user_name': u'peggy',
+                      'user_name': 'peggy',
                       'active': False},
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 2,
-                      'user_name': u'sue',
+                      'user_name': 'sue',
                       'active': True },
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 3,
-                      'user_name': u'bobby',
+                      'user_name': 'bobby',
                       'active': False},
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 4,
-                      'user_name': u'billy',
+                      'user_name': 'billy',
                       'active': True},
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 5,
-                      'user_name': u'\xe9cho',
+                      'user_name': '\xe9cho',
                       'active': False},
                      {'display_name': None,
                       'email_address': None,
                       'user_id': 6,
-                      'user_name': u'bully',
+                      'user_name': 'bully',
                       'active': True},
                      ], pprint(r)
         user = self.session.query(model.User).get(4)
         r = [group.name for group in user.groups]
-        assert r == [u'students', u'players'], r
+        assert r == ['students', 'players'], r
         
     def test_init_model_string(self):
         self.loader = YamlLoader(['model'])

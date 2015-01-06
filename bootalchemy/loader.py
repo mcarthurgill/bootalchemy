@@ -2,7 +2,7 @@ from yaml import load
 import sys
 import logging
 from pprint import pformat
-from converters import timestamp, timeonly
+from .converters import timestamp, timeonly
 from sqlalchemy.orm import class_mapper
 from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String, Binary
 try:
@@ -45,7 +45,7 @@ class Loader(object):
 
     def __init__(self, model, references=None, check_types=True):
         self.default_casts = {Integer:int,
-                              Unicode: partial(self.cast, unicode, lambda x: unicode(x, self.default_encoding)),
+                              Unicode: partial(self.cast, str, lambda x: str(x, self.default_encoding)),
                               Date: timestamp, 
                               DateTime: timestamp, 
                               Time: timeonly, 
@@ -68,7 +68,7 @@ class Loader(object):
 
         self.modules = []
         for item in model:
-            if isinstance(item, basestring):
+            if isinstance(item, str):
                 self.modules.append(__import__(item))
             else:
                 self.modules.append(item)
@@ -88,18 +88,18 @@ class Loader(object):
         # xxx: introspect the class constructor and pull the items out of item that you can, assign the rest
         try:
             obj = klass(**item)
-        except TypeError, e:
+        except TypeError as e:
             self.log_error(e, None, klass, item)
             raise TypeError("The class, %s, cannot be given the items %s. Original Error: %s" %
                 (klass.__name__, str(item), str(e)))
-        except AttributeError, e:
+        except AttributeError as e:
             self.log_error(e, None, klass, item)
             raise AttributeError("Object creation failed while initializing a %s with the items %s. Original Error: %s" %
                 (klass.__name__, str(item), str(e)))
-        except KeyError, e:
+        except KeyError as e:
             self.log_error(e, None, klass, item)
             raise KeyError("On key, %s, failed while initializing a %s with the items %s. %s.keys() = %s" %
-                (str(e), klass.__name__, str(item), klass.__name__, str(klass.__dict__.keys())))
+                (str(e), klass.__name__, str(item), klass.__name__, str(list(klass.__dict__.keys()))))
 
         return obj
 
@@ -111,7 +111,7 @@ class Loader(object):
         Nesting also happens here: Create new objects for values that start with a "!"
         Recurse through lists.
         """
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             if value.startswith('&'):
                 return None
             elif value.startswith('*'):
@@ -120,7 +120,7 @@ class Loader(object):
                 else:
                     raise Exception('The pointer %(val)s could not be found. Make sure that %(val)s is declared before it is used.' % { 'val': value })
         elif isinstance(value, dict):
-            keys = value.keys()
+            keys = list(value.keys())
             if len(keys) == 1 and keys[0].startswith('!'):
                 klass_name = keys[0][1:]
                 items = value[keys[0]]
@@ -140,8 +140,8 @@ class Loader(object):
         return value
 
     def has_references(self, item):
-        for key, value in item.iteritems():
-            if isinstance(value, basestring) and value.startswith('&'):
+        for key, value in item.items():
+            if isinstance(value, str) and value.startswith('&'):
                 return True
 
     def add_reference(self, key, obj):
@@ -154,12 +154,12 @@ class Loader(object):
         """
         extracts the value from the object and stores them in the reference dictionary.
         """
-        for key, value in item.iteritems():
-            if isinstance(value, basestring) and value.startswith('&'):
+        for key, value in item.items():
+            if isinstance(value, str) and value.startswith('&'):
                 self._references[value[1:]] = getattr(obj, key)
             if isinstance(value, list):
                 for i in value:
-                    if isinstance(value, basestring) and i.startswith('&'):
+                    if isinstance(value, str) and i.startswith('&'):
                         self._references[value[1:]] = getattr(obj, value[1:])
 
     def _check_types(self, klass, obj):
@@ -167,11 +167,11 @@ class Loader(object):
             return obj
         mapper = class_mapper(klass)
         for table in mapper.tables:
-            for key in obj.keys():
+            for key in list(obj.keys()):
                 col = table.columns.get(key, None)
                 value = obj[key]
                 if value is not None and col is not None and col.type is not None:
-                    for type_, func in self.default_casts.iteritems():
+                    for type_, func in self.default_casts.items():
                         if isinstance(col.type, type_):
                             obj[key] = func(value)
                             break
@@ -197,7 +197,7 @@ class Loader(object):
         klass is a type, values is a dictionary. Returns a new object.
         """
         ref_name = None
-        keys = values.keys()
+        keys = list(values.keys())
         if len(keys) == 1 and keys[0].startswith('&') and isinstance(values[keys[0]], dict):
             ref_name = keys[0]
             values = values[ref_name] # ie. item.values[0]
@@ -205,7 +205,7 @@ class Loader(object):
         # Values is a dict of attributes and their values for any ObjectName.
         # Copy the given dict, iterate all key-values and process those with special directions (nested creations or links).
         resolved_values = values.copy()
-        for key, value in resolved_values.iteritems():
+        for key, value in resolved_values.items():
             resolved_values[key] = self.resolve_value(value)
 
         # _check_types currently does nothing (unless you call the loaded with a check_types parameter)
@@ -307,7 +307,7 @@ class Loader(object):
         skip_keys = ['flush', 'commit', 'clear']
         try:
             for group in data:
-                for name, items in group.iteritems():
+                for name, items in group.items():
                     if name not in skip_keys:
                         klass = self.get_klass(name)
                         self.add_klasses(klass, items)
@@ -319,9 +319,9 @@ class Loader(object):
                 if 'clear' in group:
                     self.clear()
 
-        except AttributeError, e:
+        except AttributeError as e:
             if hasattr(item, 'iteritems'):
-                missing_refs = [(key, value) for key, value in item.iteritems() if isinstance(value,basestring) and value.startswith('*')]
+                missing_refs = [(key, value) for key, value in item.items() if isinstance(value,str) and value.startswith('*')]
                 self.log_error(e, data, klass, item)
                 if missing_refs:
                     log.error('*'*80)

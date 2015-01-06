@@ -29,7 +29,7 @@ DeclarativeBase = declarative_base(metadata=metadata)
 
 def json(self):
     d = {}
-    for key, value in self.__dict__.iteritems():
+    for key, value in self.__dict__.items():
         if not key.startswith('_'):
             d[key] = value
     return d
@@ -162,7 +162,7 @@ class User(DeclarativeBase):
         """Hash ``password`` on the fly and store its hashed version."""
         hashed_password = password
 
-        if isinstance(password, unicode):
+        if isinstance(password, str):
             password_8bit = password.encode('UTF-8')
         else:
             password_8bit = password
@@ -176,7 +176,7 @@ class User(DeclarativeBase):
         # Make sure the hashed password is an UTF-8 object at the end of the
         # process because SQLAlchemy _wants_ a unicode object for Unicode
         # columns
-        if not isinstance(hashed_password, unicode):
+        if not isinstance(hashed_password, str):
             hashed_password = hashed_password.decode('UTF-8')
 
         self._password = hashed_password

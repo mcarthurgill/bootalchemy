@@ -41,8 +41,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'bootalchemy'
-copyright = u'2009, Christopher Perkins'
+project = 'bootalchemy'
+copyright = '2009, Christopher Perkins'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -168,8 +168,8 @@ htmlhelp_basename = 'bootalchemydoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, document class [howto/manual]).
 latex_documents = [
-  ('index', 'bootalchemy.tex', ur'bootalchemy Documentation',
-   ur'Christopher Perkins', 'manual'),
+  ('index', 'bootalchemy.tex', r'bootalchemy Documentation',
+   r'Christopher Perkins', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

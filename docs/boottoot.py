@@ -58,7 +58,7 @@ loader = Loader(model)
 loader.from_list(session, data)
 
 genres = session.query(Genre).all()
-print [(genre.name, genre.description) for genre in genres]
+print([(genre.name, genre.description) for genre in genres])
 
 data = [{'Genre':[{'genre_id':'&scifi_id',
                    'name': "sci-fi", 
@@ -77,7 +77,7 @@ data = [{'Genre':[{'genre_id':'&scifi_id',
 
 loader.from_list(session, data)
 movies = session.query(Movie).all()
-print [(movie.title, movie.genre.name) for movie in movies]
+print([(movie.title, movie.genre.name) for movie in movies])
 #[('Back to the Future', 'sci-fi')]
 
 data = [{'Genre':[{'&comedy':{'name': "comedy", 
@@ -96,7 +96,7 @@ data = [{'Genre':[{'&comedy':{'name': "comedy",
 
 loader.from_list(session, data)
 movies = session.query(Movie).all()
-print [(movie.title, movie.genre.name) for movie in movies]
+print([(movie.title, movie.genre.name) for movie in movies])
 #[('Back to the Future', 'sci-fi'), ('The Big Lebowski', 'comedy')]
 
 data = [{'Director':[{'&andy':{'name': "Andy Wachowski"}},
@@ -114,7 +114,7 @@ data = [{'Director':[{'&andy':{'name': "Andy Wachowski"}},
 
 loader.from_list(session, data)
 movies = session.query(Movie).all()
-print [(movie.title, [d.name for d in movie.directors]) for movie in movies]
+print([(movie.title, [d.name for d in movie.directors]) for movie in movies])
 #[('Back to the Future', []), ('The Big Lebowski', []), ('The Matrix', ['Andy Wachowski', 'Larry Wachowski'])]
 
 
@@ -132,5 +132,5 @@ action = session.query(Genre).filter(Genre.name=='action').first()
 loader = YamlLoader(model, references={'action':action})
 loader.loads(session, data)
 movies = session.query(Movie).all()
-print [(movie.title, movie.genre.name) for movie in movies]
+print([(movie.title, movie.genre.name) for movie in movies])
 #[('Back to the Future', 'sci-fi'), ('The Big Lebowski', 'comedy'), ('The Matrix', 'sci-fi'), ('Fight Club,', 'action')]
