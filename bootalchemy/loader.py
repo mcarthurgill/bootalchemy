@@ -344,8 +344,6 @@ class Loader(object):
             log.error('references:\n%s'%pformat(self._references))
             log.error('class: %s'%klass)
             log.error('item: %s'%item)
-            import traceback
-            log.error(traceback.format_exc(e))
 
 class YamlLoader(Loader):
 
