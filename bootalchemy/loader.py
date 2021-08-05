@@ -4,7 +4,7 @@ import logging
 from pprint import pformat
 from .converters import timestamp, timeonly
 from sqlalchemy.orm import class_mapper
-from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String, Binary
+from sqlalchemy import Unicode, Date, DateTime, Time, Integer, Float, Boolean, String
 try:
     from sqlalchemy.exc import IntegrityError
 except ImportError:
@@ -50,8 +50,7 @@ class Loader(object):
                               DateTime: timestamp, 
                               Time: timeonly, 
                               Float:float,
-                              Boolean: partial(self.cast, bool, lambda x: x.lower() not in ('f', 'false', 'no', 'n')),
-                              Binary: partial(self.cast, str, lambda x: x.encode('base64'))
+                              Boolean: partial(self.cast, bool, lambda x: x.lower() not in ('f', 'false', 'no', 'n'))
                               }
         if PGArray:
             self.default_casts[PGArray] = list
